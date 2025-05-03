@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>ExploreIt - Event Booking</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+    background-color: #333;
+    background-image: url('/Banner.png');
+    background-size: cover;
+    background-position: center;
+    color: white;
+    padding: 100px 20px;
+    text-align: center;
+    margin-bottom: 40px;
+<!--    text-shadow: 4px 4px 6px rgba(0, 0, 0, 0.7);-->
+}
+.site-title {
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+<!--        h1 {-->
+<!--            margin: 0;-->
+<!--        }-->
+        .search-group {
+    display: flex;
+    gap: 5px;
+    margin-left: 15px;
+}
+
+        .filters {
+            background-color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        input, select, button {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .events-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .event-card {
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .event-header {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+        }
+        .event-body {
+            padding: 15px;
+        }
+        .event-type {
+            display: inline-block;
+            padding: 3px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        .event-info {
+            margin-bottom: 5px;
+        }
+        .event-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .add-event {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .add-event button {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        .event-image {
+    width: 100%;
+    height: 150px;
+    overflow: hidden;
+}
+
+.event-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+        .modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+.modal-content {
+    background-color: white;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 5px;
+    width: 80%;
+    max-width: 800px;
+}
+.booking-item {
+    background-color: #f9f9f9;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+.close {
+    float: right;
+    font-size: 24px;
+    cursor: pointer;
+}
+        .tagline {
+    margin-top: 5px;
+    font-size: 16px;
+    color: white;
+    font-style: italic;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7); /* Slightly smaller shadow */
+}
+    </style>
+</head>
+<body>
+<header>
+    <div class="container">
+<!--        <h1>EXPLORE IT</h1>-->
+<!--        <p class="tagline">Find your next adventure</p>-->
+    </div>
+</header>
+
+<div class="container">
+    <div class="filters">
+        <div class="filter-group">
+            <select id="typeFilter" title="Filter events by type" aria-label="Event Type">
+                <option value="">Select Type</option>
+                <option value="concert">Concert</option>
+                <option value="conference">Conference</option>
+                <option value="comedy">Comedy</option>
+                <option value="festival">Festival</option>
+                <option value="sport">Sport</option>
+                <option value="theater">Theater</option>
+                <option value="tech">Theater</option>
+                <option value="exhibition">Exhibition</option>
+            </select>
+
+            <select id="cityFilter" title="Filter events by city" aria-label="City">
+                <option value="">All Cities</option>
+            </select>
+
+            <input type="date" id="dateFilter" placeholder="Select Date">
+
+            <input type="number" id="maxPriceFilter" placeholder="Max Price">
+        </div>
+
+        <button onclick="applyFilters()">Apply Filters</button>
+
+        <div class="search-group">
+            <input type="text" id="searchInput" placeholder="Search events...">
+            <button onclick="searchEvents()">Search</button>
+        </div>
+    </div>
+
+
+    <div id="eventsContainer" class="events-grid">
+    </div>
+
+    <div class="add-event">
+        <button onclick="showAddEventForm()">Add New Event</button>
+    </div>
+
+    <div class="bookings">
+        <button onclick="showBookings()">Show Confirmed Bookings </button>
+    </div>
+
+    <div id="bookingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Confirmed Bookings</h2>
+            <div id="bookingsList"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+        loadEvents();
+        loadCities();
+    });
+
+    // Function to load events
+    function loadEvents() {
+        fetch('/api/events')
+            .then(response => response.json())
+            .then(events => {
+                displayEvents(events);
+            })
+            .catch(error => {
+                console.error('Error loading events:', error);
+            });
+    }
+
+// cities filter
+    function loadCities() {
+        fetch('/api/events')
+            .then(response => response.json())
+            .then(events => {
+                const citySelect = document.getElementById('cityFilter');
+                const cities = new Set();
+
+                events.forEach(event => {
+                    cities.add(event.city);
+                });
+
+                const cityArray = Array.from(cities);
+
+            cityArray.forEach(city => {
+                const option = document.createElement('option');
+                option.value = city;
+                option.textContent = city;
+                citySelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading cities:', error);
+        });
+}
+
+// events search bar
+function searchEvents() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+    if (!searchTerm.trim()) {
+        loadEvents();
+        return;
+    }
+    fetch('/api/events')
+        .then(response => response.json())
+        .then(events => {
+            // Filter events based on search term
+            const filteredEvents = events.filter(event => {
+                return event.title.toLowerCase().includes(searchTerm) ||
+                       event.venue.toLowerCase().includes(searchTerm) ||
+                       event.city.toLowerCase().includes(searchTerm) ||
+                       event.type.toLowerCase().includes(searchTerm);
+            });
+          displayEvents(filteredEvents);
+        })
+        .catch(error => {
+            console.error('Error searching events:', error);
+        });
+}
+document.getElementById('searchInput').addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        searchEvents();
+    }
+});
+
+
+    // applying search filters
+    function applyFilters() {
+        const type = document.getElementById('typeFilter').value;
+        const city = document.getElementById('cityFilter').value;
+        const date = document.getElementById('dateFilter').value;
+        const maxPrice = document.getElementById('maxPriceFilter').value;
+
+        let url = '/api/events/search?';
+        if (type) url += `type=${encodeURIComponent(type)}&`;
+        if (city) url += `city=${encodeURIComponent(city)}&`;
+        if (date) url += `date=${encodeURIComponent(date)}&`;
+        if (maxPrice) url += `maxPrice=${encodeURIComponent(maxPrice)}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(events => {
+                displayEvents(events);
+            })
+            .catch(error => {
+                console.error('Error filtering events:', error);
+            });
+    }
+
+
+
+
+
+// Function to display events
+  function displayEvents(events) {
+   const container = document.getElementById('eventsContainer');
+   container.innerHTML = '';
+
+    if (events.length === 0) {
+        container.innerHTML = '<p>No events found matching your criteria.</p>';
+        return;
+    }
+
+
+//event card for each event
+    events.forEach(event => {
+        const eventCard = document.createElement('div');
+        eventCard.className = 'event-card';
+
+        const eventDate = new Date(event.date).toLocaleDateString('en-GB');
+
+        const imageUrl = event.imageUrl || 'https://wallpaperaccess.com/full/2183063.jpg';
+
+        eventCard.innerHTML = `
+            <div class="event-image">
+                <img src="${imageUrl}" alt="${event.title}">
+            </div>
+            <div class="event-header">
+                <h3>${event.title}</h3>
+            </div>
+            <div class="event-body">
+                <span class="event-type">${event.type}</span>
+                <div class="event-info"><strong>Date:</strong> ${eventDate}</div>
+                <div class="event-info"><strong>Venue:</strong> ${event.venue}</div>
+                <div class="event-info"><strong>City:</strong> ${event.city}</div>
+                <div class="event-info"><strong>Price:</strong> £${event.ticketPrice}</div>
+                <div class="event-info"><strong>Available Tickets:</strong> ${event.availableTickets}</div>
+
+                <div class="event-actions">
+                    <button onclick="bookEvent('${event.eventId}')">Book Now</button>
+                    <button onclick="getDirections('${event.eventId}')">Get Directions</button>
+                    <button onclick="exploreNearby('${event.eventId}')">Explore Nearby</button>
+                  </div>
+            </div>
+        `;
+
+        container.appendChild(eventCard);
+    });
+}
+
+
+
+
+//booking button function
+function bookEvent(eventId) {
+    window.location.href = `/booking-form.html?eventId=${eventId}`;
+}
+
+
+//directions function, uses mapbox api
+function getDirections(eventId) {
+<!--    window.location.href = `/get-directions.html?eventId=${eventId}`;-->
+        window.location.href ="/get-directions.html?eventId=" + eventId;
+}
+
+
+
+//Function to go to explore-nearby page, uses OpenStreetMap API
+function exploreNearby(eventId) {
+    window.location.href = `/explore-nearby.html?eventId=${eventId}`;
+}
+
+
+
+//shows recent bookings
+function showBookings() {
+    fetch('/api/bookings')
+        .then(response => response.json())
+        .then(bookings => {
+            const bookingsList = document.getElementById('bookingsList');
+            bookingsList.innerHTML = '';
+
+            if (bookings.length === 0) {
+                bookingsList.innerHTML = '<p>No bookings found.</p>';
+            } else {
+                bookings.forEach(booking => {
+                    const bookingDiv = document.createElement('div');
+                    bookingDiv.className = 'booking-item';
+                    bookingDiv.innerHTML = `
+                        <h3>Booking ID: ${booking.bookingId}</h3>
+                        <p>Event ID: ${booking.eventId}</p>
+                        <p>Customer: ${booking.customerName}</p>
+                        <p>Email: ${booking.customerEmail}</p>
+                        <p>Tickets: ${booking.ticketCount}</p>
+                        <p>Total: ${booking.currency} ${booking.totalPrice}</p>
+                    `;
+                    bookingsList.appendChild(bookingDiv);
+                });
+            }
+
+            document.getElementById('bookingsModal').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error loading bookings:', error);
+        });
+}
+
+//add event button
+function showAddEventForm(eventId) {
+    window.location.href = `/add-event.html`;
+}
+
+
+
+
+// Function to close modal
+function closeModal() {
+    document.getElementById('bookingsModal').style.display = 'none';
+}
+
+// Close bookig modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('bookingsModal');
+    if (event.target === modal) {
+        modal.style.display = 'none';
+    }
+}
+
+</script>
+</body>
+</html>

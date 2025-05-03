@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExploreIt - Explore Nearby</title>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css' rel='stylesheet' />
+    <style>
+body {
+   font-family: Arial, sans-serif;
+   margin: 0;
+   padding: 20px;
+   background-color: #f4f4f4;
+      }
+ .container {
+     max-width: 1200px;
+    margin: 0 auto;
+        }
+        header {
+     background-color: #333;
+       color: white;
+      padding: 40px 20px;
+      text-align: center;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+        }
+        .nearby-box {
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+ #map {
+  width: 100%;
+    height: 400px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+        }
+                select, button {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .filter-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        #poi-list {
+            margin-top: 20px;
+        }
+        .poi-item {
+            background-color: #f9f9f9;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .poi-info {
+            flex: 1;
+        }
+        .poi-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .poi-type {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .poi-address {
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+        .poi-distance {
+            width: 80px;
+            text-align: right;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: #333;
+            text-decoration: none;
+        }
+        #event-info {
+            margin-bottom: 20px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="container">
+        <h1>ExploreIt</h1>
+        <p class="tagline">Find your next adventure</p>
+    </div>
+</header>
+
+<div class="container">
+    <div class="nearby-box">
+        <h2>Explore Nearby</h2>
+
+        <div id="event-info">
+            <p class="loading">Loading event details...</p>
+        </div>
+
+        <div class="filter-group">
+            <label for="poi-type">Points of Interest:</label>
+            <select id="poi-type">
+                <option value="all">All Types</option>
+                <option value="restaurant">Restaurants</option>
+                <option value="cafe">Cafes</option>
+                <option value="bar">Bars</option>
+                <option value="hotel">Hotels</option>
+                <option value="attraction">Attractions</option>
+                <option value="museum">Museums</option>
+                <option value="cinema">Cinemas</option>
+                <option value="theatre">Theaters</option>
+                <option value="park">Parks</option>
+                <option value="shop">Shops</option>
+            </select>
+
+            <label for="radius">Radius:</label>
+            <select id="radius">
+                <option value="500">500 m</option>
+                <option value="1000" selected>1 km</option>
+                <option value="2000">2 km</option>
+                <option value="5000">5 km</option>
+            </select>
+
+            <button onclick="findNearby()">Find Nearby</button>
+        </div>
+
+        <div id="map"></div>
+
+        <div id="poi-list">
+            <p>Select a category and click "Find Nearby" to discover places around this venue.</p>
+        </div>
+    </div>
+
+    <a href="/" class="back-link"><-- Back to Events</a>
+</div>
+
+<script src='https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js'></script>
+<script>
+
+    const mapboxToken = 'pk.eyJ1IjoiY2hyaXN0aW5hMTAwNiIsImEiOiJjbThhbHJ5NXowZmY0MmxyMGZnNGRhYWxzIn0.2fRuBt3LhuR72zTsDxfduw';
+let map, eventData, eventMarker;
+let poiMarkers = [];
+
+
+const urlParams = new URLSearchParams(window.location.search);
+const eventId = urlParams.get('eventId');
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (!eventId) {
+        window.location.href = '/';
+        return;
+    }
+
+    // Initialize map
+    mapboxgl.accessToken = mapboxToken;
+    map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [-0.1278, 51.5074],
+        zoom: 13
+    });
+
+    loadEventDetails();
+});
+
+
+
+function loadEventDetails() {
+    fetch(`/api/events/${eventId}`)
+        .then(response => response.json())
+        .then(event => {
+            eventData = event;
+            document.getElementById('event-info').innerHTML = `
+                <h3>${event.title}</h3>
+                <p><strong>Venue:</strong> ${event.venue}</p>
+                <p><strong>Address:</strong> ${event.address}, ${event.city}</p>
+            `;
+            showEventOnMap(`${event.venue}, ${event.address}, ${event.city}`);
+        })
+        .catch(error => {
+            console.error('Error loading event:', error);
+            document.getElementById('event-info').innerHTML = '<p>Error loading event details.</p>';
+        });
+}
+
+
+function showEventOnMap(address) {
+    fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxToken}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.features && data.features.length > 0) {
+                const coords = data.features[0].geometry.coordinates;
+                map.setCenter(coords);
+
+                // event marker
+                if (eventMarker) eventMarker.remove();
+                eventMarker = new mapboxgl.Marker({ color: '#4CAF50' })
+                    .setLngLat(coords)
+                    .addTo(map);
+
+
+                findNearby();
+            }
+        })
+        .catch(error => console.error('Error geocoding:', error));
+}
+
+// Find nearby POIs
+function findNearby() {
+    if (!eventMarker) return;
+
+    const poiType = document.getElementById('poi-type').value;
+    const radius = document.getElementById('radius').value;
+
+    // Clear existing markers
+    poiMarkers.forEach(marker => marker.remove());
+    poiMarkers = [];
+
+    const coords = eventMarker.getLngLat();
+
+    // Build query
+    let query;
+    if (poiType === 'all') {//https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_API_by_Example
+        query = `[out:json];(
+            node["amenity"](around:${radius},${coords.lat},${coords.lng});
+            node["tourism"](around:${radius},${coords.lat},${coords.lng});
+            node["leisure"](around:${radius},${coords.lat},${coords.lng});
+            node["shop"](around:${radius},${coords.lat},${coords.lng});
+        );out body;`;
+    } else if (['restaurant', 'cafe', 'bar', 'hotel', 'cinema', 'theatre'].includes(poiType)) {
+        query = `[out:json];node["amenity"="${poiType}"](around:${radius},${coords.lat},${coords.lng});out body;`;
+    } else if (['attraction', 'museum'].includes(poiType)) {
+        query = `[out:json];node["tourism"="${poiType}"](around:${radius},${coords.lat},${coords.lng});out body;`;
+    } else if (poiType === 'park') {
+        query = `[out:json];node["leisure"="park"](around:${radius},${coords.lat},${coords.lng});out body;`;
+    } else if (poiType === 'shop') {
+        query = `[out:json];node["shop"](around:${radius},${coords.lat},${coords.lng});out body;`;
+    }
+
+    // Call API
+    fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => displayPOIs(data))
+        .catch(error => {
+            console.error('Error finding POIs:', error);
+            document.getElementById('poi-list').innerHTML = '<p>Error finding nearby places.</p>';
+        });
+}
+
+// Display POIs
+function displayPOIs(data) {
+    if (!data.elements || data.elements.length === 0) {
+        document.getElementById('poi-list').innerHTML = '<p>No places found nearby.</p>';
+        return;
+    }
+
+    // Filter POIs with names
+    const pois = data.elements.filter(poi => poi.tags && poi.tags.name);
+
+    // Add markers
+    pois.forEach(poi => {
+        // Set color
+        let color = '#3887be'; // Default
+        if (poi.tags.amenity === 'restaurant') color = '#e67e22';
+        if (poi.tags.amenity === 'cafe') color = '#8e44ad';
+        if (poi.tags.amenity === 'bar') color = '#e74c3c';
+        if (poi.tags.tourism) color = '#3498db';
+        if (poi.tags.leisure) color = '#2ecc71';
+        if (poi.tags.shop) color = '#f1c40f';
+
+         // Add marker
+        const marker = new mapboxgl.Marker({ color })
+            .setLngLat([poi.lon, poi.lat])
+            .addTo(map);
+        poiMarkers.push(marker);
+    });
+
+    // Build list HTML
+    let listHTML = '<h3>Nearby Places</h3>';
+    pois.forEach(poi => {
+        listHTML += `
+            <div class="poi-item">
+                <div class="poi-name">${poi.tags.name}</div>
+                <div class="poi-type">${getPOIType(poi)}</div>
+            </div>
+        `;
+    });
+    document.getElementById('poi-list').innerHTML = listHTML;
+}
+
+// Get POI type
+function getPOIType(poi) {
+    if (poi.tags.amenity === 'restaurant') return 'Restaurant';
+    if (poi.tags.amenity === 'cafe') return 'Cafe';
+    if (poi.tags.amenity === 'bar') return 'Bar';
+    if (poi.tags.amenity === 'hotel') return 'Hotel';
+    if (poi.tags.amenity === 'cinema') return 'Cinema';
+    if (poi.tags.amenity === 'theatre') return 'Theatre';
+    if (poi.tags.tourism === 'attraction') return 'Attraction';
+    if (poi.tags.tourism === 'museum') return 'Museum';
+    if (poi.tags.leisure === 'park') return 'Park';
+    if (poi.tags.shop) return `Shop (${poi.tags.shop})`;
+
+const type = poi.tags.amenity || poi.tags.tourism || poi.tags.leisure || 'place';
+return type.charAt(0).toUpperCase() + type.slice(1);
+}
+</script>
+</body>
+</html>

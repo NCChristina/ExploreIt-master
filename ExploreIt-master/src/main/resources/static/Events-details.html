@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Details - ExploreIt</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .event-details {
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .detail {
+            margin-bottom: 10px;
+        }
+        .label {
+            font-weight: bold;
+            width: 120px;
+            display: inline-block;
+        }
+        .buttons {
+            margin-top: 20px;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        .btn-map {
+            background-color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+<h1>Event Details</h1>
+<div class="event-details" id="event-container">
+ <div class="detail">
+   <span class="label">Title:</span>
+    <span id="event-title">Loading...</span>
+    </div>
+  <div class="detail">
+        <span class="label">Type:</span>
+        <span id="event-type">Loading...</span>
+    </div>
+    <div class="detail">
+      <span class="label">Date:</span>
+        <span id="event-date">Loading...</span>
+    </div>
+  <div class="detail">
+        <span class="label">Venue:</span>
+        <span id="event-venue">Loading...</span>
+    </div>
+  <div class="detail">
+        <span class="label">Address:</span>
+  <span id="event-address">Loading...</span>
+   </div>
+    <div class="detail">
+        <span class="label">City:</span>
+  <span id="event-city">Loading...</span>
+    </div>
+    <div class="detail">
+        <span class="label">Price:</span>
+        <span id="event-price">Loading...</span>
+    </div>
+    <div class="detail">
+        <span class="label">Available:</span>
+        <span id="event-tickets">Loading...</span>
+    </div>
+
+    <div class="buttons">
+        <a href="#" id="booking-link" class="btn">Book Now</a>
+        <a href="#" id="map-link" class="btn btn-map">View on Map</a>
+<!--        <a href="index.html" class="btn">Back to Events</a>-->
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    let eventId = urlParams.get('id');
+
+    if (!eventId) {
+        alert('No event ID provided');
+        window.location.href = 'index.html';
+    }
+
+
+// event details
+    fetch(`/api/events/${eventId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Event not found');
+            }
+            return response.json();
+        })
+        .then(event => {
+            // Update page with event details
+            document.getElementById('event-title').textContent = event.title;
+            document.getElementById('event-type').textContent = event.type;
+            document.getElementById('event-date').textContent = new Date(event.date).toLocaleDateString();
+            document.getElementById('event-venue').textContent = event.venue;
+            document.getElementById('event-address').textContent = event.address;
+            document.getElementById('event-city').textContent = event.city;
+            document.getElementById('event-price').textContent = `£${event.ticketPrice.toFixed(2)}`;
+            document.getElementById('event-tickets').textContent = `${event.availableTickets} tickets`;
+
+            document.getElementById('booking-link').href = `booking-form.html?eventId=${eventId}`;
+            document.getElementById('map-link').href = `event-map.html?eventId=${eventId}`;
+
+            document.title = `${event.title} - ExploreIt`;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('event-container').innerHTML = `<p>Error: ${error.message}</p>`;
+        });
+</script>
+</body>
+</html>

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ExploreIt - Book Event</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            margin: 0;
+        }
+        .booking-container {
+            display: flex;
+            gap: 20px;
+        }
+        .event-details, .booking-form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            flex: 1;
+        }
+        .event-info {
+            margin-bottom: 10px;
+        }
+        .event-type {
+            display: inline-block;
+            padding: 3px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .success-message {
+            background-color: #dff0d8;
+            color: #3c763d;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+        .error-message {
+            background-color: #f2dede;
+            color: #a94442;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #333;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="container">
+        <h1>ExploreIt</h1>
+    </div>
+</header>
+
+<div class="container">
+    <div id="bookingContainer" class="booking-container">
+        <div class="event-details">
+            <h2>Event Details</h2>
+            <div id="eventDetails">
+                <!-- Event details will be loaded here -->
+            </div>
+        </div>
+
+        <div class="booking-form">
+            <h2>Booking Form</h2>
+            <form id="bookingForm">
+                <label for="customerName">Your Name</label>
+                <input type="text" id="customerName" required>
+
+                <label for="customerEmail">Email Address</label>
+                <input type="email" id="customerEmail" required>
+
+                <label for="ticketCount">Number of Tickets</label>
+                <input type="number" id="ticketCount" min="1" value="1" required onchange="updateTotalPrice()">
+
+                <div class="price-summary">
+                    <p class="price-item">Price per ticket: <span id="pricePerTicket">£0.00</span></p>
+                    <p class="total-price">Total price: <span id="totalPrice">£0.00</span></p>
+                </div>
+
+                <button type="submit">Complete Booking</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="successMessage" class="success-message">
+        <h3>Booking Confirmed!</h3>
+        <p>Your booking has been successfully completed.</p>
+        <p id="bookingReference"></p>
+    </div>
+
+    <div id="errorMessage" class="error-message">
+        <h3>Booking Failed</h3>
+        <p id="errorText"></p>
+    </div>
+
+    <a href="/" class="back-link"><-- Back to Events</a>
+</div>
+
+<script>
+
+    let currentEvent = null;
+
+   const urlParams = new URLSearchParams(window.location.search);
+   const eventId = urlParams.get('eventId');
+   document.addEventListener('DOMContentLoaded', function() {
+        if (!eventId) {
+            window.location.href = '/';
+            return;
+        }
+
+        loadEventDetails(eventId);
+    });
+
+//load events
+
+
+    function loadEventDetails(eventId) {
+        fetch(`/api/events/${eventId}`)
+            .then(response => response.json())
+            .then(event => {
+                // Check if error was returned
+                if (event.error) {
+                    throw new Error(event.error);
+                }
+
+
+    currentEvent = event;
+
+   const eventDetailsDiv = document.getElementById('eventDetails');
+   const eventDate = new Date(event.date).toLocaleDateString('en-GB');
+
+eventDetailsDiv.innerHTML = `
+       <span class="event-type">${event.type}</span>
+ <h3>${event.title}</h3>
+    <div class="event-info"><strong>Date:</strong> ${eventDate}</div>
+    <div class="event-info"><strong>Venue:</strong> ${event.venue}</div>
+  <div class="event-info"><strong>Address:</strong> ${event.address}</div>
+  <div class="event-info"><strong>City:</strong> ${event.city}</div>
+   <div class="event-info"><strong>Price per Ticket:</strong> £${event.ticketPrice}</div>
+   <div class="event-info"><strong>Available Tickets:</strong> ${event.availableTickets}</div>`;
+
+// total price display
+   document.getElementById('pricePerTicket').textContent = `\u00A3${event.ticketPrice.toFixed(2)}`;
+    updateTotalPrice();
+            })
+  .catch(error => {
+   console.error('Error loading event details:', error);
+<!--  document.getElementById('errorMessage').style.display = 'block';-->
+<!--  document.getElementById('errorText').textContent = 'Event not found or could not be loaded.';-->
+<!-- document.getElementById('bookingContainer').style.display = 'none';-->
+            });
+    }
+
+   // to update total price based on ticket count
+function updateTotalPrice() {
+    if (!currentEvent) return;
+
+    const ticketCount = parseInt(document.getElementById('ticketCount').value) || 1;
+    const pricePerTicket = currentEvent.ticketPrice;
+    const totalPrice = ticketCount * pricePerTicket;
+
+    document.getElementById('pricePerTicket').textContent = `\u00A3${pricePerTicket.toFixed(2)}`;
+    document.getElementById('totalPrice').textContent = `\u00A3${totalPrice.toFixed(2)}`;
+}
+
+
+    // real-time updates
+
+ document.getElementById('ticketCount').addEventListener('input', updateTotalPrice);
+  document.getElementById('bookingForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const bookingData = {
+            eventId: eventId,
+            customerName: document.getElementById('customerName').value,
+            customerEmail: document.getElementById('customerEmail').value,
+            ticketCount: parseInt(document.getElementById('ticketCount').value)
+        };
+
+// Create booking
+   fetch('/api/bookings', {
+ method: 'POST',
+ headers: {
+  'Content-Type': 'application/json'
+ },
+  body: JSON.stringify(bookingData)
+        })
+        .then(response => response.json())
+        .then(booking => {
+            // Check if error was returned
+            if (booking.error) {
+                throw new Error(booking.error);
+            }
+
+            document.getElementById('bookingContainer').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'block';
+            document.getElementById('bookingReference').textContent = `Booking Reference: ${booking.bookingId}`;
+        })
+        .catch(error => {
+            console.error('Error creating booking:', error);
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('errorText').textContent = error.message || 'An error occurred while creating your booking.';
+        });
+    });
+</script>
+</body>
+</html>
